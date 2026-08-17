@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triagem de Intimações — Escritório Automatizado</title>
+<meta name="description" content="Cole sua OAB, receba a tabela: que peça é, qual o prazo e o que buscar nos autos. Grátis, sem instalar nada.">
+<style>
+:root{
+  --paper:#F3F1EC; --ink:#1C1E1A; --muted:#65675E; --rule:#D8D4C8;
+  --accent:#8A6A2E; --card:#FBFAF6; --red:#A5402A; --yellow:#9C7A1C; --green:#3C6B4A; --grey:#8B8D85;
+}
+@media (prefers-color-scheme:dark){
+  :root{--paper:#15160F; --ink:#EAE7DC; --muted:#9A9B90; --rule:#33352A;
+    --accent:#D9B15C; --card:#1C1D15; --red:#E0765D; --yellow:#E0BD5C; --green:#7FBF95; --grey:#7C7E74;}
+}
+:root[data-theme="dark"]{
+  --paper:#15160F; --ink:#EAE7DC; --muted:#9A9B90; --rule:#33352A;
+  --accent:#D9B15C; --card:#1C1D15; --red:#E0765D; --yellow:#E0BD5C; --green:#7FBF95; --grey:#7C7E74;
+}
+:root[data-theme="light"]{
+  --paper:#F3F1EC; --ink:#1C1E1A; --muted:#65675E; --rule:#D8D4C8;
+  --accent:#8A6A2E; --card:#FBFAF6; --red:#A5402A; --yellow:#9C7A1C; --green:#3C6B4A; --grey:#8B8D85;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.5;}
+.wrap{max-width:900px;margin:0 auto;padding:40px 20px 80px}
+h1{font-size:1.7rem;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 28px;max-width:60ch;font-size:1.02rem}
+form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+.field{display:flex;flex-direction:column;gap:4px}
+label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+input,select{
+  background:var(--card);border:1px solid var(--rule);border-radius:6px;color:var(--ink);
+  padding:11px 12px;font-size:1rem;font-family:inherit;
+}
+input#oab{width:150px}
+select#uf{width:90px}
+button{
+  background:var(--accent);color:#141308;border:none;border-radius:6px;
+  padding:12px 22px;font-size:1rem;font-weight:600;cursor:pointer;
+}
+button:disabled{opacity:.5;cursor:default}
+.msg{margin-top:14px;color:var(--muted);font-size:.94rem;min-height:1.4em}
+.msg.err{color:var(--red)}
+.tw{overflow-x:auto;margin-top:22px;border:1px solid var(--rule);border-radius:8px;display:none}
+table{border-collapse:collapse;width:100%;font-size:.92rem;background:var(--card)}
+th{text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+  font-weight:600;padding:10px 12px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.proc{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.84rem;white-space:nowrap}
+.farol{font-size:1.05rem}
+.foot{font-size:.82rem;color:var(--muted);margin-top:16px;max-width:70ch}
+.olhar{display:none;margin-top:22px;border-left:3px solid var(--red);background:var(--card);
+  padding:14px 18px;border-radius:0 8px 8px 0}
+.olhar .eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--red);
+  font-weight:700;display:block;margin-bottom:8px}
+.olhar ul{margin:0;padding-left:1.1em}
+.olhar li{margin-bottom:5px}
+footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--rule);font-size:.85rem;color:var(--muted)}
+footer a{color:var(--accent)}
+.captura{display:none;margin-top:26px;background:var(--card);border:1px solid var(--rule);
+  border-radius:8px;padding:20px 22px}
+.captura h3{margin-bottom:4px}
+.captura .sub{color:var(--muted);font-size:.92rem;max-width:56ch}
+.captura form{margin-bottom:0}
+.captura input{width:100%}
+.captura .field:first-of-type{flex:1 1 160px}
+.captura .field:nth-of-type(2){flex:1 1 180px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #141308;border-top-color:transparent;
+  border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Triagem de Intimações</h1>
+  <p class="sub">Cola a sua OAB. Em segundos você recebe a tabela: que peça cada intimação pede, qual
+  o prazo (com a base legal), e o que buscar nos autos antes de escrever. Grátis, sem instalar nada,
+  sem senha de tribunal nenhuma.</p>
+
+  <form id="f">
+    <div class="field"><label for="oab">OAB (só números)</label><input id="oab" inputmode="numeric" placeholder="179415" required></div>
+    <div class="field"><label for="uf">UF</label>
+      <select id="uf">
+        <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+        <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+        <option>MT</option><option>MS</option><option selected>MG</option><option>PA</option><option>PB</option>
+        <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+        <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+        <option>SE</option><option>TO</option>
+      </select>
+    </div>
+    <div class="field"><label for="dias">Período</label>
+      <select id="dias">
+        <option value="1">Hoje</option>
+        <option value="2">Últimos 2 dias</option>
+        <option value="7">Última semana</option>
+      </select>
+    </div>
+    <button id="btn" type="submit">Triar intimações</button>
+  </form>
+  <div class="msg" id="msg"></div>
+
+  <div class="olhar" id="olhar"><span class="eyebrow">⚠️ Olhe primeiro</span><ul id="olharList"></ul></div>
+
+  <div class="tw" id="tw">
+    <table>
+      <thead><tr><th></th><th>Processo</th><th>Tribunal</th><th>Que peça é</th><th>Prazo</th><th>Data fatal</th><th>Observação</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <p class="foot" id="rodape" style="display:none">
+    🔴 vence em até 3 dias úteis (ou já venceu) · 🟡 até 7 · 🟢 acima · ⚪ sem prazo nosso.
+    Datas calculadas em dias úteis (CPC art. 219), a partir do 1º dia útil seguinte à
+    disponibilização, considerando só feriados nacionais e o recesso forense (20/12–20/01).
+    Confira feriado local e suspensão de expediente do tribunal. Isso é triagem automática —
+    não substitui a conferência do advogado responsável.
+  </p>
+
+  <div class="captura" id="captura">
+    <h3>Quer receber isso todo dia, sem abrir a página?</h3>
+    <p class="sub" style="margin-bottom:16px">Grátis por 30 dias. Deixa seu nome e WhatsApp — toda
+    manhã eu mando sua triagem lá.</p>
+    <form id="fCaptura">
+      <div class="field"><label for="capNome">Nome</label><input id="capNome" required></div>
+      <div class="field"><label for="capWhats">WhatsApp (com DDD)</label><input id="capWhats" inputmode="numeric" placeholder="35991234567" required></div>
+      <button id="btnCaptura" type="submit">Quero receber</button>
+    </form>
+    <div class="msg" id="msgCaptura"></div>
+  </div>
+
+  <footer>
+    Feito pelo Marcus Peterson · faz parte do canal <strong>Escritório Automatizado</strong> ·
+    roda inteiro no seu navegador, direto na API pública do DJEN — nada da sua OAB fica guardado
+    em servidor nenhum.
+  </footer>
+</div>
+
+<script>
+const API = 'https://comunicaapi.pje.jus.br/api/v1/comunicacao';
+// PENDENTE: trocar pela URL real depois de implantar apps-script-cadastro.gs
+// (Extensões → Apps Script na planilha "Escritório Automatizado — Isca WhatsApp",
+// ver instruções no topo daquele arquivo). Enquanto for null, o formulário
+// avisa "ainda não está pronto" em vez de tentar mandar pra lugar nenhum.
+const CADASTRO_API_URL = null;
+
+function norm(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+
+// ── classificação — mesma ordem/regra do motor Python (específico → genérico) ──
+const REGRAS = [
+  ['Contrarrazões a embargos de declaração',
+    /(contrarrazoes|contra ?razoes).{0,60}(embargos|declarac)|embargos de declarac\w+.{0,120}(contrarrazoes|impugnac\w+ (aos|dos) embargos)/],
+  ['Embargos de declaração', /embargos de declaracao|embargos declaratorios/],
+  ['Contrarrazões de recurso', /contrarrazoes|contra ?razoes/],
+  ['Agravo interno', /agravo interno|agravo regimental/],
+  ['Agravo de instrumento', /agravo de instrumento|\bagravo\b/],
+  ['Apelação', /apelacao/],
+  ['Recurso inominado', /recurso inominado/],
+  ['Recurso especial/extraordinário', /recurso especial|recurso extraordinario/],
+  ['Recurso administrativo', /recurso administrativo|junta recursal|banca examinadora/],
+  ['Mandado de segurança', /mandado de seguranca/],
+  ['Impugnação / contestação', /impugnac\w+|impugnar|contestac\w+/],
+  ['RPV / precatório / alvará', /\brpv\b|precatorio|alvara|requisitorio|expedicao de oficio requisitorio/],
+  ['Multa / astreintes', /astreinte|multa diaria|multa cominatoria|descumprimento (da|de) (liminar|decisao|obrigacao)/],
+  ['Cumprimento de sentença / execução', /cumprimento de sentenca|cumprimento definitivo|cumprimento provisorio|execucao (do julgado|de sentenca|invertida)|iniciar (o )?cumprimento/],
+  ['Cálculos / honorários', /\bcalculo\w*\b|planilha de valores|honorarios (contratuais|sucumbenciais|advocaticios)/],
+  ['Especificação de provas', /especifiq\w+ as provas|provas que pretende|producao de provas|\bpericia\b|quesitos/],
+  ['Acordo / desistência / extinção', /\bacordo\b|desistencia|renuncia|extincao do (feito|processo)/],
+  ['Custas / guia / preparo', /custas|guia de|preparo|\bgru\b/],
+  ['Pauta / sessão de julgamento', /pauta de julgamento|sessao de julgamento|incluido em pauta/],
+  ['Distribuição / autuação', /lista de distribuicao|distribuido por|autuacao/],
+  ['Juntada / procuração / habilitação', /juntada|juntar|substabelecimento|procuracao|habilitacao/],
+  ['Ciência — requerer o que de direito', /ciencia|cientific|inteiro teor|requerer o que (for|entender) de direito|manifest\w+|vista (a|id|dos)|intime-se|intimad[oa]|prazo legal|esclarec\w+|despacho|decisao|sentenca|acordao/],
+].map(([n,p])=>[n, new RegExp(p.source,'i')]);
+
+function familia(texto, tipoAto){
+  const t = norm(`${tipoAto||''} ${texto||''}`);
+  if (t.length < 15) return '(sem texto)';
+  for (const [nome, rx] of REGRAS) if (rx.test(t)) return nome;
+  return '(não classificado)';
+}
+
+// ── prazo escrito no texto ──
+const EXTENSO = {um:1,dois:2,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10,
+  doze:12,quinze:15,vinte:20,trinta:30,sessenta:60};
+const RX_PRAZO = [
+  /prazo\b[^.;:]{0,40}?\b(\d{1,3})\s*(?:\([a-zç ]+\))?\s*dias?\b/gi,
+  /prazo\b[^.;:]{0,40}?\b([a-zç]+)\s*\(\s*\d{1,3}\s*\)\s*dias?\b/gi,
+  /\bem\s+(\d{1,3})\s*\([a-zç ]+\)\s*dias?\b/gi,
+  /prazo[:\s]+(\d{1,3})\b(?!\s*[\d/.])/gi,
+];
+const TERCEIRO = '(?:estado|munic[íi]pio|uni[ãa]o|fazenda\\s+p[úu]blica|autarquia|inss|r[ée]u|r[ée]|requerid[oa]|executad[oa]|impetrad[oa]|autoridade\\s+coatora|inventariante|perit[oa]|contadoria|serventia|cart[óo]rio|secretaria|banco)';
+const NOSSO = '(?:parte\\s+autora|autor|autora|exequente|impetrante|requerente|embargante|agravante|apelante|recorrente|recorrid[oa]|patron[oa]|advogad[oa])';
+const RX_NOSSO = new RegExp(
+  `(?:intim\\w+|conced\\w+|assinal\\w+|determin\\w+|faculto|manifeste-se|d[êe]-se\\s+vista)\\s+(?:que\\s+)?(?:ao?s?|às?)?\\s*${NOSSO}`+
+  `|${NOSSO}\\s*,?\\s+(?:para|a\\s+fim\\s+de|dever\\w+|ter[áã]\\w*|fica\\w*\\s+intimad\\w+)`+
+  `|prazo\\b[^.;:]{0,60}?\\b(?:ao?s?|às?|para\\s+(?:o|a)\\s+)\\s*${NOSSO}`+
+  `|\\b[àa]s\\s+partes\\b`, 'i');
+const RX_TERCEIRO = new RegExp(
+  `(?:determin\\w+|conced\\w+|assinal\\w+|intim\\w+|cit\\w+|notific\\w+|conden\\w+|oficie-se)\\s+(?:que\\s+)?(?:ao?s?|às?)\\s+${TERCEIRO}`+
+  `|${TERCEIRO}\\s+(?:dever\\w+|ter[áã]\\w*|tem|fica\\w*\\s+(?:intimad|obrigad|condenad)\\w+)`+
+  `|\\b(?:a|para)\\s+ser\\s+(?:pag|cumprid|implantad|efetuad|restitu)\\w+`, 'i');
+
+function clausula(texto, pos){
+  let ini = -1;
+  for (const c of '.;:\n'){ const i = texto.lastIndexOf(c, pos); if (i > ini) ini = i; }
+  ini += 1;
+  let fim = texto.length;
+  for (const c of '.;:\n'){ const i = texto.indexOf(c, pos); if (i !== -1 && i < fim) fim = i; }
+  return texto.slice(ini, fim);
+}
+
+function prazosDoTexto(texto){
+  const nossos = new Set(), terceiros = new Set();
+  texto = texto || '';
+  for (const rx of RX_PRAZO){
+    rx.lastIndex = 0;
+    let m;
+    while ((m = rx.exec(texto)) !== null){
+      const bruto = m[1];
+      const n = /^\d+$/.test(bruto) ? parseInt(bruto,10) : EXTENSO[bruto.toLowerCase()];
+      if (!n || n < 1 || n > 90) continue;
+      const cl = clausula(texto, m.index);
+      const ehTerceiro = RX_TERCEIRO.test(cl) && !RX_NOSSO.test(cl);
+      (ehTerceiro ? terceiros : nossos).add(n);
+      if (m.index === rx.lastIndex) rx.lastIndex++;
+    }
+  }
+  const nossosArr = [...nossos].sort((a,b)=>a-b);
+  const terceirosArr = [...terceiros].filter(n=>!nossos.has(n)).sort((a,b)=>a-b);
+  return [nossosArr, terceirosArr];
+}
+
+const PRAZO_LEGAL = {
+  'Apelação': [15, 'CPC art. 1.003 §5º'],
+  'Contrarrazões de recurso': [15, 'CPC art. 1.010 §1º'],
+  'Contrarrazões a embargos de declaração': [5, 'CPC art. 1.023 §2º'],
+  'Embargos de declaração': [5, 'CPC art. 1.023'],
+  'Agravo de instrumento': [15, 'CPC art. 1.003 §5º'],
+  'Agravo interno': [15, 'CPC art. 1.021 §2º'],
+  'Recurso especial/extraordinário': [15, 'CPC art. 1.003 §5º'],
+  'Recurso inominado': [10, 'Lei 9.099/95 art. 42 — Juizado, conferir contagem'],
+  'Impugnação / contestação': [15, 'CPC art. 335 / art. 525'],
+  'Cumprimento de sentença / execução': [15, 'CPC art. 523'],
+  'Especificação de provas': [15, 'CPC art. 357 §1º'],
+};
+const SEM_PRAZO = new Set(['Distribuição / autuação','Pauta / sessão de julgamento',
+  'Juntada / procuração / habilitação','(sem texto)','(não classificado)']);
+
+// ── dias úteis ──
+const FERIADOS = new Set(['01-01','04-21','05-01','09-07','10-12','11-02','11-15','11-20','12-25']);
+function mmdd(d){ return String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function util(d){
+  const dow = d.getDay();
+  if (dow === 0 || dow === 6) return false;
+  if (FERIADOS.has(mmdd(d))) return false;
+  const m = d.getMonth()+1, day = d.getDate();
+  if ((m===12 && day>=20) || (m===1 && day<=20)) return false;
+  return true;
+}
+function addDays(d, n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+function proxUtil(d){ let r = addDays(d,1); while(!util(r)) r = addDays(r,1); return r; }
+function dataFatal(disp, dias){
+  let inicio = proxUtil(proxUtil(disp));
+  let d = inicio, contados = 0;
+  while (contados < dias){
+    if (util(d)){ contados++; if (contados===dias) return d; }
+    d = addDays(d,1);
+  }
+  return d;
+}
+function uteisAte(alvo, hoje){
+  hoje = hoje || new Date(new Date().toDateString());
+  if (alvo < hoje) return -1;
+  const dias = Math.round((alvo-hoje)/86400000)+1;
+  let n = 0;
+  for (let i=0;i<dias;i++) if (util(addDays(hoje,i))) n++;
+  return n;
+}
+
+function triar(item){
+  const txt = item.texto || '';
+  const [nossos, terceiros] = prazosDoTexto(txt);
+  let d0 = null;
+  const disp = item.data_disponibilizacao || '';
+  if (disp && disp.length>=10){
+    const [y,m,dd] = disp.slice(0,10).split('-').map(Number);
+    if (y && m && dd) d0 = new Date(y, m-1, dd);
+  }
+  const peca = familia(txt, item.tipoComunicacao||'');
+  let dias = nossos.length ? nossos[0] : null;
+  let origem = dias ? 'texto' : null, base = '';
+  if (!dias && !SEM_PRAZO.has(peca) && PRAZO_LEGAL[peca]){
+    [dias, base] = PRAZO_LEGAL[peca];
+    origem = 'lei';
+  }
+  const fatal = (d0 && dias) ? dataFatal(d0, dias) : null;
+  const restam = fatal ? uteisAte(fatal) : null;
+  let farol = '⚪';
+  if (dias){
+    if (restam !== null && restam < 0) farol = '🔴';
+    else if (restam !== null && restam <= 3) farol = '🔴';
+    else if (restam !== null && restam <= 7) farol = '🟡';
+    else farol = '🟢';
+  }
+  const remeteEvento = /\bevento\s+\d+|\bid\.?\s*\d{6,}/i.test(txt) && txt.length < 900;
+  return {
+    processo: item.numeroprocessocommascara || item.numero_processo || '—',
+    tribunal: item.siglaTribunal || '—',
+    peca, origem, base, dias, terceiros, disp: d0, fatal, restam, farol, remeteEvento, texto: txt,
+  };
+}
+
+async function buscar(oab, uf, inicioStr, fimStr){
+  let itens = [], pagina = 1;
+  while (true){
+    const params = new URLSearchParams({numeroOab: oab, ufOab: uf,
+      dataDisponibilizacaoInicio: inicioStr, dataDisponibilizacaoFim: fimStr,
+      pagina, itensPorPagina: 100});
+    const resp = await fetch(`${API}?${params}`);
+    if (!resp.ok){
+      if (resp.status === 403) throw new Error('O tribunal bloqueou o acesso — isso acontece se você não estiver no Brasil.');
+      throw new Error(`O DJEN respondeu com erro (${resp.status}). Tenta de novo em instantes.`);
+    }
+    const d = await resp.json();
+    const lote = d.items || [];
+    itens = itens.concat(lote);
+    if (!lote.length || itens.length >= (d.count||0)) break;
+    pagina++;
+  }
+  const vistos = new Set(), unicos = [];
+  for (const i of itens){
+    const chave = `${i.numero_processo}|${(i.texto||'').slice(0,300)}`;
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    unicos.push(i);
+  }
+  return unicos;
+}
+
+function fmtData(d){
+  return d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : '—';
+}
+
+function render(linhas){
+  const ordem = {'🔴':0,'🟡':1,'🟢':2,'⚪':3};
+  linhas.sort((a,b)=>{
+    const oa = ordem[a.farol], ob = ordem[b.farol];
+    if (oa !== ob) return oa-ob;
+    const fa = a.fatal ? a.fatal.getTime() : Infinity, fb = b.fatal ? b.fatal.getTime() : Infinity;
+    return fa-fb;
+  });
+
+  const olhar = linhas.filter(l => l.farol==='🔴' || l.remeteEvento);
+  const olharEl = document.getElementById('olhar'), olharList = document.getElementById('olharList');
+  olharList.innerHTML = '';
+  if (olhar.length){
+    for (const l of olhar){
+      let motivo;
+      if (l.restam !== null && l.restam < 0) motivo = `<strong>prazo fatal já venceu</strong> (${fmtData(l.fatal)})`;
+      else if (l.farol === '🔴') motivo = `faltam ${l.restam} dia(s) útil(eis) — vence ${fmtData(l.fatal)}`;
+      else motivo = 'a intimação só remete a um evento/documento — o texto não basta para redigir';
+      const li = document.createElement('li');
+      li.innerHTML = `<code>${l.processo}</code> (${l.tribunal}) — ${motivo}`;
+      olharList.appendChild(li);
+    }
+    olharEl.style.display = 'block';
+  } else olharEl.style.display = 'none';
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  for (const l of linhas){
+    const tr = document.createElement('tr');
+    let prazoTxt = '—';
+    if (l.dias) prazoTxt = l.origem === 'texto' ? `${l.dias} dias (no texto)` : `${l.dias} dias (da lei)`;
+    const obs = [];
+    if (l.origem === 'lei') obs.push(`prazo não está escrito — sugerido por ${l.base}`);
+    if (l.terceiros.length) obs.push(`${l.terceiros.join('/')}d no texto é prazo de outra parte`);
+    if (l.remeteEvento) obs.push('remete a evento — abrir os autos');
+    if (!l.dias && !SEM_PRAZO.has(l.peca)) obs.push('conferir prazo legal do ato');
+    tr.innerHTML = `<td class="farol">${l.farol}</td><td class="proc">${l.processo}</td>`+
+      `<td>${l.tribunal}</td><td>${l.peca}</td><td>${prazoTxt}</td><td>${fmtData(l.fatal)}</td>`+
+      `<td>${obs.join('; ') || '—'}</td>`;
+    tbody.appendChild(tr);
+  }
+  document.getElementById('tw').style.display = linhas.length ? 'block' : 'none';
+  document.getElementById('rodape').style.display = linhas.length ? 'block' : 'none';
+}
+
+document.getElementById('f').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const oab = document.getElementById('oab').value.replace(/\D/g,'');
+  const uf = document.getElementById('uf').value;
+  const dias = parseInt(document.getElementById('dias').value, 10);
+  const btn = document.getElementById('btn'), msg = document.getElementById('msg');
+  if (!oab){ msg.textContent = 'Digita o número da OAB.'; msg.className='msg err'; return; }
+
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Buscando…';
+  msg.className = 'msg'; msg.textContent = '';
+  document.getElementById('tw').style.display = 'none';
+  document.getElementById('olhar').style.display = 'none';
+
+  const hoje = new Date();
+  const inicio = addDays(hoje, -(dias-1));
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+  try{
+    const itens = await buscar(oab, uf, iso(inicio), iso(hoje));
+    if (!itens.length){
+      msg.textContent = `Nenhuma publicação para a OAB ${oab}/${uf} no período. Isso pode ser bom sinal — ou pode ser que ainda não tenha saído hoje.`;
+    } else {
+      render(itens.map(triar));
+      msg.textContent = `${itens.length} publicação(ões) encontrada(s).`;
+    }
+    // mostra o convite pro digest depois de QUALQUER busca (achou ou não algo
+    // hoje, a pessoa já viu a ferramenta funcionar) — guarda oab/uf pro cadastro
+    document.getElementById('captura').style.display = 'block';
+    document.getElementById('captura').dataset.oab = oab;
+    document.getElementById('captura').dataset.uf = uf;
+  } catch(e){
+    msg.textContent = `Não consegui buscar: ${e.message}`;
+    msg.className = 'msg err';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Triar intimações';
+  }
+});
+
+document.getElementById('fCaptura').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const nome = document.getElementById('capNome').value.trim();
+  const whatsapp = document.getElementById('capWhats').value.replace(/\D/g,'');
+  const cap = document.getElementById('captura');
+  const oab = cap.dataset.oab, uf = cap.dataset.uf;
+  const btn = document.getElementById('btnCaptura'), msg = document.getElementById('msgCaptura');
+
+  if (!nome || whatsapp.length < 10){
+    msg.textContent = 'Confere o nome e o WhatsApp (com DDD).'; msg.className = 'msg err'; return;
+  }
+  if (!CADASTRO_API_URL){
+    msg.textContent = 'Esse cadastro ainda não está ativo — volta aqui em breve.';
+    msg.className = 'msg err';
+    return;
+  }
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Enviando…';
+  msg.className = 'msg'; msg.textContent = '';
+  try{
+    const resp = await fetch(CADASTRO_API_URL, {
+      method: 'POST', headers: {'Content-Type': 'text/plain'},
+      body: JSON.stringify({nome, whatsapp, oab, uf}),
+    });
+    const d = await resp.json();
+    if (!d.ok) throw new Error(d.erro || 'erro desconhecido');
+    msg.textContent = d.duplicado
+      ? 'Esse WhatsApp já tá cadastrado — pode ficar tranquilo.'
+      : 'Prontinho! Você recebe a primeira triagem amanhã de manhã.';
+    document.getElementById('fCaptura').style.display = 'none';
+  } catch(e){
+    msg.textContent = `Não consegui cadastrar: ${e.message}`;
+    msg.className = 'msg err';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Quero receber';
+  }
+});
+</script>
+</body>
+</html>
